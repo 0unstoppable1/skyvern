@@ -2,51 +2,40 @@ FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
 WORKDIR /app
 
-# Install additional system dependencies
+# Install essential system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    build-essential \
-    curl \
+    git build-essential curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone Skyvern repository
-RUN git clone https://github.com/Skyvern-AI/skyvern.git .
+# Upgrade pip tooling for stability
+RUN pip install --upgrade pip setuptools wheel
 
-# Upgrade pip first
-RUN pip install --upgrade pip
+# Install Skyvern from the stable PyPI package
+RUN pip install skyvern
 
-# Install skyvern directly from PyPI (most reliable approach)
-RUN pip install skyvern-automate
-
-# Alternatively, if you need the latest from source, use this instead:
+# Alternatively, install the latest from source:
 # RUN pip install git+https://github.com/Skyvern-AI/skyvern.git
 
-# Playwright is already installed in this base image
-# Just ensure chromium is available
+# Ensure Playwright has Chromium
 RUN playwright install chromium
 
-# Create necessary directories with proper permissions
-RUN mkdir -p /app/data \
-    /app/logs \
-    /app/skyvern/artifacts \
-    /tmp/chromium-cache \
+# Set up necessary directories with proper permissions
+RUN mkdir -p /app/data /app/logs /app/skyvern/artifacts /tmp/chromium-cache \
     && chmod -R 755 /app/data /app/logs /app/skyvern/artifacts
 
-# Set environment variables
+# Environment setup
 ENV PYTHONPATH=/app
-
-# Browser optimization
 ENV BROWSER_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-# Set up volumes for persistent data
+# Use bindable volumes for persistence
 VOLUME ["/app/data", "/app/logs", "/app/skyvern/artifacts"]
 
-# Health check
+# Optional: healthcheck (make sure Skyvern serves this endpoint)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Expose ports
+# Expose Skyvern’s ports
 EXPOSE 8000 8080
 
-# Start Skyvern
+# Default command to launch Skyvern
 CMD ["skyvern", "run", "all"]
