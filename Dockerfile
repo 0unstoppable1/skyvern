@@ -30,7 +30,7 @@ ENV PYTHONPATH=/app
 ENV BROWSER_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
 # Expose the port required by Claw Cloud
-EXPOSE 8080
+EXPOSE 8000
 
 # Healthcheck adjusted for 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
@@ -40,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 VOLUME ["/app/data", "/app/logs", "/app/skyvern/artifacts"]
 
 # Start Skyvern on port 8080
-CMD ["skyvern", "run", "all", "--port", "8080"]
+CMD ["skyvern", "run", "all"]
