@@ -1,12 +1,10 @@
-FROM python:3.11-slim
+FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
 
 WORKDIR /app
 
-# Install system dependencies
+# Install additional system dependencies
 RUN apt-get update && apt-get install -y \
     git \
-    wget \
-    gnupg \
     build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -17,8 +15,9 @@ RUN git clone https://github.com/Skyvern-AI/skyvern.git .
 # Install Python dependencies
 RUN pip install --no-cache-dir -e .
 
-# Install Playwright and Chromium with dependencies
-RUN playwright install chromium --with-deps
+# Playwright is already installed in this base image
+# Just ensure chromium is available
+RUN playwright install chromium
 
 # Create necessary directories with proper permissions
 RUN mkdir -p /app/data \
@@ -27,10 +26,10 @@ RUN mkdir -p /app/data \
     /tmp/chromium-cache \
     && chmod -R 755 /app/data /app/logs /app/skyvern/artifacts
 
-# Set environment variables (no resource limits)
+# Set environment variables
 ENV PYTHONPATH=/app
 
-# Browser optimization (no memory limits)
+# Browser optimization
 ENV BROWSER_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
 # Set up volumes for persistent data
