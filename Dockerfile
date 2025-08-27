@@ -1,25 +1,25 @@
-FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy-python11
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install essential system dependencies
+# Install system dependencies required for Playwright Chromium
 RUN apt-get update && apt-get install -y \
-    git build-essential curl \
+    git curl wget unzip \
+    fonts-liberation libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libgtk-3-0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip tooling for stability
+# Upgrade pip tooling
 RUN pip install --upgrade pip setuptools wheel
 
-# Install Skyvern from the stable PyPI package
+# Install Playwright and Chromium
+RUN pip install playwright && playwright install chromium
+
+# Install Skyvern from PyPI
 RUN pip install skyvern
 
-# Alternatively, install the latest from source:
-# RUN pip install git+https://github.com/Skyvern-AI/skyvern.git
-
-# Ensure Playwright has Chromium
-RUN playwright install chromium
-
-# Set up necessary directories with proper permissions
+# Create required directories
 RUN mkdir -p /app/data /app/logs /app/skyvern/artifacts /tmp/chromium-cache \
     && chmod -R 755 /app/data /app/logs /app/skyvern/artifacts
 
@@ -27,15 +27,15 @@ RUN mkdir -p /app/data /app/logs /app/skyvern/artifacts /tmp/chromium-cache \
 ENV PYTHONPATH=/app
 ENV BROWSER_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-# Use bindable volumes for persistence
+# Volumes
 VOLUME ["/app/data", "/app/logs", "/app/skyvern/artifacts"]
 
-# Optional: healthcheck (make sure Skyvern serves this endpoint)
+# Optional healthcheck (adjust if Skyvern doesn’t expose /health)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Expose Skyvern’s ports
+# Ports
 EXPOSE 8000 8080
 
-# Default command to launch Skyvern
+# Start Skyvern
 CMD ["skyvern", "run", "all"]
