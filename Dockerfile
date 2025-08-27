@@ -12,8 +12,20 @@ RUN apt-get update && apt-get install -y \
 # Clone Skyvern repository
 RUN git clone https://github.com/Skyvern-AI/skyvern.git .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# Upgrade pip and install build tools
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install dependencies first if requirements.txt exists
+RUN if [ -f "requirements.txt" ]; then \
+        pip install --no-cache-dir -r requirements.txt ; \
+    fi
+
+# Install poetry if pyproject.toml uses poetry
+RUN if grep -q "tool.poetry" pyproject.toml 2>/dev/null; then \
+        pip install poetry && poetry config virtualenvs.create false && poetry install --only=main ; \
+    else \
+        pip install --no-cache-dir -e . ; \
+    fi
 
 # Playwright is already installed in this base image
 # Just ensure chromium is available
