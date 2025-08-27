@@ -1,41 +1,43 @@
+# Use Python 3.11 slim image as base
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies required for Playwright Chromium
+# Install system dependencies for Playwright and general build
 RUN apt-get update && apt-get install -y \
     git curl wget unzip \
     fonts-liberation libatk1.0-0 libatk-bridge2.0-0 \
     libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
     libxrandr2 libgbm1 libasound2 libpangocairo-1.0-0 libgtk-3-0 \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip tooling
+# Upgrade pip and tooling
 RUN pip install --upgrade pip setuptools wheel
 
 # Install Playwright and Chromium
 RUN pip install playwright && playwright install chromium
 
-# Install Skyvern from PyPI
+# Install Skyvern
 RUN pip install skyvern
 
-# Create required directories
+# Create necessary directories
 RUN mkdir -p /app/data /app/logs /app/skyvern/artifacts /tmp/chromium-cache \
     && chmod -R 755 /app/data /app/logs /app/skyvern/artifacts
 
-# Environment setup
+# Set environment variables
 ENV PYTHONPATH=/app
 ENV BROWSER_ARGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-# Volumes
+# Expose the port required by Claw Cloud
+EXPOSE 8080
+
+# Healthcheck adjusted for 8080
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Mount persistent volumes
 VOLUME ["/app/data", "/app/logs", "/app/skyvern/artifacts"]
 
-# Optional healthcheck (adjust if Skyvern doesn’t expose /health)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Ports
-EXPOSE 8000 8080
-
-# Start Skyvern
-CMD ["skyvern", "run", "all"]
+# Start Skyvern on port 8080
+CMD ["skyvern", "run", "all", "--port", "8080"]
